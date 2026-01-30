@@ -30,6 +30,15 @@ import jsPDF from 'jspdf';
 import * as XLSX from 'xlsx';
 import './index.css';
 
+// Default Backgrounds
+import FrontBg from './assets/Front.png';
+import BackBg from './assets/Back.png';
+import FrontSafetyBg from './assets/Front-Safety.jpg';
+import YaowadeeBg from './assets/Yaowadee.jpg';
+import NattapornBg from './assets/Nattaporn.jpg';
+import ChayapatBg from './assets/Chayapat.jpg';
+import SarunthornBg from './assets/Sarunthorn.jpg';
+
 // Identity Colors
 const PRIMARY_COLOR = '#68c5bc';
 const SECONDARY_COLOR = '#3e87c6';
@@ -38,6 +47,13 @@ const GOLD_SECONDARY = '#bb8d1e';
 
 // Card dimensions in mm (actual print size)
 const CARD_WIDTH_MM = 60;
+
+const SAFETY_BACKGROUNDS = {
+  'เยาวดี': YaowadeeBg,
+  'นัทฐพร': NattapornBg,
+  'ชญาพัฒน์': ChayapatBg,
+  'สรัญธรณ์': SarunthornBg
+};
 const CARD_HEIGHT_MM = 85.6;
 
 // Convert mm to pixels (3.78 px/mm at 96 DPI)
@@ -86,14 +102,14 @@ function App() {
       companyName: 'IMPACT ID Card Generator',
       themeColor: PRIMARY_COLOR,
       secondaryColor: SECONDARY_COLOR,
-      frontBackground: null,
-      backBackground: null
+      frontBackground: FrontBg,
+      backBackground: BackBg
     },
     SAFETY: {
       companyName: 'SAFETY PASSPORT',
       themeColor: GOLD_COLOR,
       secondaryColor: GOLD_SECONDARY,
-      frontBackground: null,
+      frontBackground: FrontSafetyBg,
       backBackground: null
     }
   });
@@ -745,7 +761,12 @@ function App() {
                   <div key={emp.id} style={{ gridColumn: orderIndex < 2 ? 1 : 2, gridRow: orderIndex % 2 === 0 ? 1 : 2, position: 'relative' }}>
                     <div style={{ position: 'relative' }}>
                       {renderCardFrame()}
-                      <div style={{ display: 'flex', gap: '0' }}>
+                      <div style={{
+                        display: 'flex',
+                        gap: `${Math.abs(printSpacing.offset) * 2}px`,
+                        position: 'relative',
+                        alignItems: 'center'
+                      }}>
                         {renderCard(emp, { forPrint: true })}
                         {renderPrintBackCard(emp)}
                       </div>
@@ -847,6 +868,30 @@ function App() {
           <span className="text-sm" style={{ color: '#6b7280' }}>{currentSettings.themeColor}</span>
         </div>
       </div>
+      {cardType === 'SAFETY' && (
+        <div className="animate-in fade-in slide-in-from-top-1 duration-300">
+          <label className="block text-xs mb-1 font-medium" style={{ color: '#6b7280' }}>เลือกชื่อ Trainer</label>
+          <select
+            className="w-full px-3 py-2 text-sm focus:outline-none cursor-pointer hover:bg-black/5 transition-colors"
+            style={inputStyle}
+            onChange={(e) => {
+              const bg = SAFETY_BACKGROUNDS[e.target.value];
+              if (bg) {
+                setSettings(prev => ({
+                  ...prev,
+                  SAFETY: { ...prev.SAFETY, backBackground: bg }
+                }));
+              }
+            }}
+            defaultValue=""
+          >
+            <option value="" disabled>เลือกชื่อพื้นหลัง...</option>
+            {Object.keys(SAFETY_BACKGROUNDS).map(name => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+          </select>
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs mb-1 font-medium" style={{ color: '#6b7280' }}>พื้นหลังหน้า</label>
