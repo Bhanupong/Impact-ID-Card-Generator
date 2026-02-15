@@ -149,9 +149,23 @@ function App() {
     if (savedSettings) {
       try {
         const parsed = JSON.parse(savedSettings);
+
+        // Helper to check if a saved URL is a stale Vite internal path
+        const isStaleVitePath = (url) => typeof url === 'string' && (url.startsWith('/src/') || url.includes('?t='));
+
+        // Helper to sanitize a settings object
+        const sanitize = (saved, defaults) => {
+          // Merge with defaults first to ensure all keys exist
+          const result = { ...defaults, ...saved };
+          // If the saved background is a stale path, restore the current default
+          if (isStaleVitePath(result.frontBackground)) result.frontBackground = defaults.frontBackground;
+          if (isStaleVitePath(result.backBackground)) result.backBackground = defaults.backBackground;
+          return result;
+        };
+
         setSettings(prev => ({
-          REGULAR: { ...prev.REGULAR, ...(parsed.REGULAR || {}) },
-          SAFETY: { ...prev.SAFETY, ...(parsed.SAFETY || {}) }
+          REGULAR: sanitize(parsed.REGULAR || {}, prev.REGULAR),
+          SAFETY: sanitize(parsed.SAFETY || {}, prev.SAFETY)
         }));
       } catch (e) { console.error('Error loading settings:', e); }
     }
@@ -159,6 +173,30 @@ function App() {
 
   useEffect(() => { localStorage.setItem('csvUrl', csvUrl); }, [csvUrl]);
   useEffect(() => { localStorage.setItem('cardSettingsV2', JSON.stringify(settings)); }, [settings]);
+
+  const resetToDefaults = () => {
+    if (window.confirm('คุณต้องการรีเซ็ตการตั้งค่า (สีและรูปพื้นหลัง) เป็นค่าเริ่มต้นใช่หรือไม่?')) {
+      const defaultSettings = {
+        REGULAR: {
+          companyName: 'IMPACT ID Card Generator',
+          themeColor: PRIMARY_COLOR,
+          secondaryColor: SECONDARY_COLOR,
+          frontBackground: FrontBg,
+          backBackground: BackBg
+        },
+        SAFETY: {
+          companyName: 'SAFETY PASSPORT',
+          themeColor: GOLD_COLOR,
+          secondaryColor: GOLD_SECONDARY,
+          frontBackground: FrontSafetyBg,
+          backBackground: null
+        }
+      };
+      setSettings(defaultSettings);
+      localStorage.setItem('cardSettingsV2', JSON.stringify(defaultSettings));
+      alert('รีเซ็ตการตั้งค่าสำเร็จ');
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -472,12 +510,13 @@ function App() {
         <div style={{
           position: 'absolute', width: '100%', height: '100%', backfaceVisibility: forPrint ? 'visible' : 'hidden',
           backgroundColor: '#ffffff',
-          backgroundImage: s.frontBackground ? `url(${s.frontBackground})` : (s.frontBackground === undefined ? undefined : 'none'),
-          backgroundSize: 'cover', backgroundPosition: 'center',
           borderRadius: forPrint ? '0' : '10px',
           boxShadow: forPrint ? 'none' : '0 8px 32px rgba(0,0,0,0.15)',
           overflow: 'hidden',
-          background: s.frontBackground ? `url(${s.frontBackground}) center/cover no-repeat` : 'linear-gradient(to bottom, #d9aa38 0%, #ffffff 40%, #ffffff 60%, #465b73 60%, #465b73 65%, #ffffff 65%)'
+          backgroundImage: s.frontBackground ? `url(${s.frontBackground})` : 'linear-gradient(to bottom, #d9aa38 0%, #ffffff 40%, #ffffff 60%, #465b73 60%, #465b73 65%, #ffffff 65%)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat'
         }}>
           {/* CP Logo and SAFETY PASSPORT */}
           {!s.frontBackground && (
@@ -927,6 +966,13 @@ function App() {
             )}
           </div>
         </div>
+      </div>
+      <div className="pt-4 border-t mt-4" style={{ borderColor: 'rgba(0,0,0,0.1)' }}>
+        <button onClick={resetToDefaults}
+          className="w-full py-2.5 px-3 rounded-xl text-xs font-bold transition-all hover:brightness-105 flex items-center justify-center gap-2"
+          style={{ ...buttonSecondary, color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.2)' }}>
+          <RefreshCw size={14} /> รีเซ็ตการตั้งค่าเป็นค่าเริ่มต้น
+        </button>
       </div>
     </div>
   );
